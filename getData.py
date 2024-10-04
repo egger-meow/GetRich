@@ -8,6 +8,12 @@ exchange = ccxt.binance()
 # Symbol: 'TURBO/USDT' or the pair you are interested in
 # Timeframe: '1m', '5m', '1h', '1d' (adjust as needed)
 # Limit: Number of data points (candlesticks)
+timeFrameFactorTable = {
+    '1h' : 10000,
+    '15m': 100000
+}
+    
+
 exchange = ccxt.binance({
     'options': {
         'defaultType': 'future',  # Specify futures market for swaps
@@ -24,7 +30,9 @@ candles = exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
 df = pd.DataFrame(candles, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
 
 for col in ['open', 'high', 'low', 'close']:
-    df[col] *= 1000000
+    df[col] *= timeFrameFactorTable[timeframe]
+
+
 
 # Calculate (close - open) ^ 2
 df['diff_squared'] = (df['close'] - df['open']) ** 2
@@ -37,6 +45,7 @@ df['sum_future_5'] = df['signed_diff_squared'].rolling(window=5).sum().shift(-4)
 
 df.dropna(inplace=True)
 # Keep only the 'sum_future_5' column
+
 df = df[[ 'open', 'high', 'low', 'close', 'volume', 'sum_future_5']]
 
 
@@ -47,7 +56,7 @@ x = data[:, :-1]  # All columns except the last one (features: open, high, low, 
 y = data[:, -1]   # The last column is 'sum_future_5'
 
 timeStampsPerSample = 50
-stride = 3
+stride = 10
 
 X_time_series = []
 y_time_series = []
@@ -67,5 +76,5 @@ y = np.array(y_time_series)  # Shape: (num_samples,)
 print("X shape (features):", x.shape)  # Should be (n_samples, 5) for 5 channels
 print("y shape (target):", y.shape)    # Should be (n_samples,)
 
-print(y)
+print(y[-100:])
 # Display the DataFrame with the new column
